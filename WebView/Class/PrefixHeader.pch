@@ -1,0 +1,28 @@
+//
+//  PrefixHeader.pch
+//  ZhongLiLotter
+//
+//  Created by SuGrand on 16/1/13.
+//  Copyright © 2016年 SuGrand. All rights reserved.
+//
+
+#ifndef PrefixHeader_pch
+#define PrefixHeader_pch
+
+#define screenW [UIScreen mainScreen].bounds.size.width  // 屏幕宽度
+#define screenH [UIScreen mainScreen].bounds.size.height  // 屏幕高度
+#define mainWebViewFrame CGRectMake(0, 20, screenW, screenH -20)  // webView大小
+#define progressViewFrame CGRectMake(0, 20, screenW, 20)
+
+#define Host_default @"78365dh.com"  // 默认主机名
+//#define Host_Main @"https://%@/" // 主机主页
+#define Host_http @"http://%@/"
+#define Host_https @"https://%@/"
+
+
+#import <FMDatabase.h>
+#import <WebKit/WebKit.h>
+#import "DataBase.h"
+
+
+#endif /* PrefixHeader_pch */

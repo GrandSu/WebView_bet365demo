@@ -7,6 +7,7 @@
 //
 
 #import "AppDelegate.h"
+#import "MainViewController.h"
 
 @interface AppDelegate ()
 
@@ -17,6 +18,20 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    
+    MainViewController * mainVC = [[MainViewController alloc] init];
+    
+    [self.window setRootViewController:mainVC];
+    
+//    // 让当前 UIWindow 窗口变成 keyWiindow (主窗口)
+//    [self.window makeKeyWindow];
+    
+    // 让当前 UIWindow 窗口变成 keyWiindow (主窗口)，并显示出来
+    [self.window makeKeyAndVisible];
+    
+    
     return YES;
 }
 
