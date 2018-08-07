@@ -8,23 +8,14 @@
 
 #import "MainViewController.h"
 
-@interface MainViewController () <WKUIDelegate, WKNavigationDelegate> {
-    BOOL ResquestHttp;  // 请求头切换
-}
-@property (nonatomic, strong) WKWebViewConfiguration *config;
-@property (nonatomic, strong) WKWebView *webView;  // 浏览器
-@property (nonatomic, strong) UIProgressView *progressView;  // 进度条
-@property (nonatomic, strong) NSString *currenWeb_Url;  // 当前网站
-@property (nonatomic, strong) NSString *baseWeb_Url;
-@property (nonatomic, strong) UIImageView *bgImageview;  // 背景图片
-
+@interface MainViewController ()
 
 @end
 
 @implementation MainViewController
 
 #pragma mark - 懒加载
-
+//
 - (WKWebViewConfiguration *)config {
     if (!_config) {
         
@@ -82,7 +73,7 @@
     if (!_progressView) {
         // 初始化并设置展示风格（ UIProgressViewStyleBar 一般用于 toolbar ）
         _progressView = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
-//        _progressView.frame = progressViewFrame;
+        _progressView.frame = progressViewFrame;
         
         _progressView.backgroundColor = [UIColor greenColor];  // 背景颜色
         _progressView.progressTintColor = [UIColor redColor];  // 填充部分颜色（即进度条颜色）
@@ -125,13 +116,13 @@
     [self startLoadRequestWithUrl:Host_default];
 
     // 设置监听者KVO，监听 WKWebView 对象的 title 和 estimatedProgress 属性，就是当前网页的 标题 和 网页加载的进度
-    [self.webView addObserver:self forKeyPath:@"title" options:NSKeyValueObservingOptionNew context:nil];
+    [self.webView addObserver:self forKeyPath:@"loading" options:NSKeyValueObservingOptionNew context:nil];
     [self.webView addObserver:self forKeyPath:@"estimatedProgress" options:NSKeyValueObservingOptionNew context:nil];
 }
 
 - (void)dealloc {
     // 移除 KVO
-    [self.webView removeObserver:self forKeyPath:@"title"];
+    [self.webView removeObserver:self forKeyPath:@"loading"];
     [self.webView removeObserver:self forKeyPath:@"estimatedProgress"];
 }
 
@@ -143,9 +134,8 @@
     if (object ==self.webView) {
         if ([keyPath isEqualToString:@"estimatedProgress"]) {
             
-            [self.progressView setAlpha:1.0f];
             [self.progressView setProgress:self.webView.estimatedProgress animated:YES];
-            NSLog(@"已加载：%.2f", self.progressView.progress);
+            NSLog(@"已加载：%.2f%@", self.progressView.progress * 100, @"%");
             
             /**
              添加一个简单的动画，将 progressView 变为透明
@@ -153,18 +143,15 @@
              动画结束后将 progressView 变为透明
              */
             if (self.webView.estimatedProgress >= 1.0f) {
-                [UIView animateWithDuration:0.3f delay:0.3f options:UIViewAnimationOptionCurveEaseOut animations:^{
-                    [self.progressView setAlpha:0.0f];
-                } completion:^(BOOL finished) {
-                    [self.progressView setProgress:0.0f animated:NO];
-                }];
+                [self progressIsLoadEnd];
             }
             
-        }else if ([keyPath isEqualToString:@"title"]) {
+        }else if ([keyPath isEqualToString:@"loading"]) {
+            
+            [self progressIsLoadEnd];
             NSLog(@"webtitle:%@", self.webView.title);
             
         }else {
-            
             [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
             
         }
@@ -173,6 +160,7 @@
     }
     
 }
+
 
 #pragma mark - WKWebView
 /** WKWebView 加载 */
@@ -301,7 +289,7 @@
 /** 警告框 【显示 JavaScript 弹窗alert】 */
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler {
     
-    UIAlertAction * action = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+    UIAlertAction * action = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
         completionHandler();
     }];
     [self creatAlertControllerWithTitle:message Message:nil PreferredStyle:UIAlertControllerStyleAlert AlertActionArr:@[action]];
@@ -311,7 +299,7 @@
 /** 选择框 【测试JS代码：confirm（"confirm message"）】 */
 - (void)webView:(WKWebView *)webView runJavaScriptConfirmPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(BOOL))completionHandler {
     
-    UIAlertAction * action1 = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+    UIAlertAction *action1 = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
         completionHandler(YES);
     }];
     UIAlertAction *action2 = [UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
@@ -323,7 +311,6 @@
 
 /** 输入框  */
 - (void)webView:(WKWebView *)webView runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSString * _Nullable))completionHandler {
-    NSLog(@"输入框");
     
     UIAlertController *alertController = [UIAlertController alertControllerWithTitle:prompt message:nil preferredStyle:UIAlertControllerStyleAlert];
     [alertController addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
@@ -348,10 +335,23 @@
         [alertController addAction:action];
     }
     
+    // 弹出一个新视图 可以带动画效果，完成后可以做相应的执行函数经常为nil
     [self presentViewController:alertController animated:YES completion:nil];
 }
 
 
+/** webview已加载完毕，隐藏进度条progress */
+- (void)progressIsLoadEnd {
+    
+    [UIView animateWithDuration:0.3f delay:0.3f options:UIViewAnimationOptionCurveEaseOut animations:^{
+        [self.progressView setAlpha:0.0f];
+    } completion:^(BOOL finished) {
+        [self.progressView setProgress:0.0f animated:NO];
+    }];
+    
+}
+
+/** 屏幕方向改变 */
 - (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
     
     [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
